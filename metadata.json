@@ -1,0 +1,6 @@
+{
+  "name": "SHADOWSEEK: 3D First-Person Hide & Seek",
+  "description": "Real-time multiplayer 3D first-person hide-and-seek web game. Explore immersive 3D maps, use stealth or tactical radar scanner to hunt and survive.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

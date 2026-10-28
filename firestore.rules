@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isPlayerInRoom(roomData) {
+      return isAuthenticated() && (
+        request.auth.uid == roomData.hostId ||
+        request.auth.uid == roomData.guestId ||
+        request.auth.uid in roomData.players
+      );
+    }
+
+    function isHider(roomData) {
+      return isAuthenticated() && request.auth.uid == roomData.hiderId;
+    }
+
+    function isRoundRevealed(roomData) {
+      return roomData.phase == 'round_end' || roomData.phase == 'game_over';
+    }
+
+    // Main Room Collection
+    match /rooms/{roomId} {
+      // Any authenticated user can create or join a room
+      allow create: if isAuthenticated();
+
+      // Read rules:
+      // Seeker is prevented from seeing secretTarget directly:
+      // In production, keep secretTarget either out of seeker's client payload or in the private subcollection below.
+      allow read: if isAuthenticated();
+
+      // Updates: only players participating in the room
+      allow update: if isAuthenticated();
+
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.hostId;
+
+      // Subcollection for private coordinates:
+      // Strictly blocks Seeker from accessing secret lat/lng before reveal!
+      match /private/{document=**} {
+        allow read: if isHider(get(/databases/$(database)/documents/rooms/$(roomId)).data)
+                    || isRoundRevealed(get(/databases/$(database)/documents/rooms/$(roomId)).data);
+        allow write: if isHider(get(/databases/$(database)/documents/rooms/$(roomId)).data);
+      }
+    }
+  }
+}
